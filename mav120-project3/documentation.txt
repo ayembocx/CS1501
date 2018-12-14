@@ -1,0 +1,74 @@
+Mathew Varughese
+Apartment Priority Queue
+
+I have split the documentation up into sections. The first section is an overview. Then I discuss the individual classes. Then at the end I analyze the runtime and space complexity.
+
+====== Overview ======
+The priority queue needed for this assignment can be implemented with the binary heap data structure. This structure, as discussed in lecture, offers constant time lookup for the element with highest priority, and can do removal and insertions in logarithmic time. This is great.
+
+For this particular problem, there are two measures of "priority". An apartment is measured by its rent and by its square footage. Since there are two "priorities", I have decided to create two priority queues. This is abstracted into the class "MinMaxPriorityQueue". This class holds two priority queues. One is a min heap that is ordered by rent and the other is a max heap that is sorted by square footage. This means double the space will be taken (more on that in the space complexity analysis), but both the minimum rent and maximum square footage can be received in constant time. It also is much easier to understand than trying to use some more complicated, convoluted structure that holds the minimum and maximum in a single array. The MinMaxPriorityQueue is generic and abstracts the maintenance of the two queues into its own methods.
+
+The next requirement to account for is the ability to update an apartment by its key (which is determined by its address, apartment number, city, and zip). To do this, it makes most sense to use an indexable priority queue. This is done by using an indirection data structure within the heaps. For this indirection data structure, I decided to use a hash table (Java's HashMap). This offers constant lookup time (more on that on the runtime complexity) and makes the code simple to understand. This indirection data structure is maintained by the MinMaxPriorityQueue. The MinMaxPriorityQueue passes this map as an argument to its individual priority queues. The indirection data structure maps the keys generated from an apartment to an array of indices. The first value in the array is the index in the minimum heap of that apartment. The second value in the array is the index of the maximum heap of that apartment. The reason the map keys to an index of integers is to save space. Instead of having the min heap and max heap handle their own separate indirection data structure, the MinMaxPriorityQueue class maintains it. This way, there is no need for two maps that have the same keys with different values. Instead, one map is used and the values are an array of indices. This way also allows a third heap to be added with ease. If there was a new requirement to be able to get the apartment's by alphabetical order, the MinMaxPriorityQueue would be able to easily be extended to support this by just creating a third heap and using another comparator. Then, the map would map apartment keys to an array of 3 indices. The indirection data structure allows apartments to be updated in logarithmic time. Since the map can give the index of a particular Apartment, and update can be done by either heaping that element up or down. So, with this hash map, an update can be done in logarithmic time.
+
+In order to maintain the indirection data structure, whenever a "swap" operation is performed, the map needs to be updated. Since a lookup in a map is a constant time operation, using a map for the indirection data structure does not add to the time complexity. 
+
+The next requirement is to be able to remove an apartment in logarithmic time. This is easily done because of the indirection data structure. The apartment can be looked up on the indirection data structure, and be swapped with the last element in the array. The size of the heap will be decremented, and the swapped element will be heaped down.
+
+The hardest requirement is to be able to retrieve the minimum rent and maximum square footage apartments given a particular city. To implement this, I decided to use a hash map of min max priority queues. In order to achieve a logarithmic runtime for these operations, I have sacrificed memory. This sacrifice is reasonable because not a ridiculous amount of auxiliary memory will be used. More information on that will be provided in the runtime analysis section. The hash map maps the apartment's city string to a min max priority queue. A wrapper class, called ApartmentPriorityQueue manages this map. In other words ApartmentPriorityQueue holds a min max priority queue for every element, and a hash map of cities to more min max priority queues. Doing it this way allows the requirement to be met. When a city is given, the corresponding min max priority queue can be looked up in the hash table. Then, the according operation can be performed on that to get more information.
+
+
+====== Classes ======
+
+== AptTracker.java ==
+Driver program
+
+== Apartment.java ==
+Holds info about an Apartment. Also has a generateKey method. This returns a the lowercase version of the concatenation of the address, apartment number, city, and zip code of an Apartment. This is a unique string that can be used to identify the particular apartment. 
+
+== HasKey.java ==
+This is an interface that Apartment implements. It is used so the priority queue can be generic. The priority queue can hold any element that implements this interface. This is because a key is needed for the data structure.
+
+== IndexedPriorityQueuePart.java ==
+This is the class that has the heap data structure. It holds one array, and supports the common methods for a priority queue. It is generic. The constructor requires a java Comparator. This java Comparator compare function is used on the elements to determine the priority. This allows it to be generic. It also takes in a map and a "mapIndex". The "mapIndex" is so the priority queue knows which index of the array in the indirection map to update and maintain. Since this priority queue is a "part" of a bigger priority queue, it needs this information.
+
+== MinMaxPriorityQueue.java ==
+MinMaxPriorityQueue.java holds two IndexedPriorityQueueParts. This is because one is used for the "max" and one is used for the "min". This is also generic. It abstracts the detail of managing two heaps while still providing all the methods needed for a priority queue. It also holds the indirection data structure, and passes it into the IndexedPriorityQueuePart's when they are constructed. Since the min and max priority queue contain the same objects, just in different order, it makes sense for the map to be maintained in this class. 
+
+== ApartmentPQ ==
+ApartmentPQ has a MinMaxPriorityQueue within it to store all apartments added. It also has a hash map that maps a city string to a MinMaxPriorityQueue. This class handles the additions, removals, and updates. It will have a min max priority queue for each city and one more for all of the apartments. So, this class maintains and calls the appropriate methods on all of the priority queues within it. It also provides methods that make it easy for the driver to add apartments user input. 
+
+== AptTracker ==
+This is a simple driver program which calls methods on ApartmentPQ. 
+
+
+====== Space Complexity / Runtime Analysis =====
+
+NOTE 1: Resizing Arrays
+The array backing the heap has an ensureCapacity method which doubles the size of an array. This is just like how an ArrayList works. Doubling the size of the array is a task that requires O(n) time. However, for the sake of simplicity this is ignored. An insertions into the array backing the heap will require O(n) time in the worst case when the array needs to be resized. However, this will not happen often at all, so it suffices to say that inserting into this array will be an O(1) operation. 
+
+NOTE 2: HashMap vs Trie/DLB
+In my analysis I claim lookup time in the Java Hash Map is an O(1) operation. Technically, look up in a hash table can degrade to O(n) in the worst case. For this to happen, there has to be an unprobable number of collisions. When a reasonable load factor in a hash table is maintained, the runtime of a lookup is O(1) most of the time. To guarantee an O(1) look up time, a Trie or DLB could have been used instead of Java's HashMap. However, this seemed like over engineering the problem and a waste of memory. The Trie would do lookup times in O(w), where w is the length of the key of the apartment. However, it would have the overhead of creating a Node class for each character in the key. Also, it is unlikely for the keys of an apartment to have common prefixes. So, for simplicity and engineering practicality, the Hash Map is used as the indirection data structure.  
+
+Let the number of Apartment's be n. In order to achieve logarithmic or better runtimes for the elements, memory is sacrificed. First I will analyze the space complexity. This implementation requires O(n) space. 
+
+== SPACE ==
+
+Since the Apartment is an object, Java will store references to the objects in the arrays. Each reference will be either 4 or 8 bytes depending on the system.  
+
+The IndexedPriorityQueuePart is simply a heap. It will require an array of size n. The MinMaxPriorityQueue has a min heap and a max heap. This means O(2n) space will be used for the heaps. It also contains a Map indirection data structure. That will also be O(n) space. So for n elements, 1 MinMaxPriorityQueue will overall take O(2n+n), or O(3n) auxiliary space.
+
+The ApartmentQueue holds a MinMaxPriorityQueue that contains all elements. This takes 3n space. The map that contains all of the cities will also take 3n space. This is because the total number of elements in all of the priority queues in the map of cities will be equal to n. 
+
+For instance, if there are 7 apartments, n=7. Say 3 are in Pittsburgh, 2 in San Francisco, and 2 in Philadelphia. The MinMaxPriorityQueue will hold all apartments. It will have a min heap and max heap, each with 7 elements. The indirection map will also have 7 elements. The map of cities will have 3 additional priority queues. The Pittsburgh MinMaxPQ will have 6 elements. The SF MinMaxPQ will have 4. And the Philly MinMaxPQ will have 4. The maps inside those also contain 3, 2, and 2 elements respectively. In total, 42 elements will be stored in the apartment queue. 
+
+This means O(6n). That is not bad at all given the fast runtimes.
+
+== RUNTIME ==
+
+An insertion requires O(2log n + 1 + 2log n + 1) runtime. Logn for insertion into the max heap, logn for insertion into the min heap, and O(1) for updated the map. The same process occurs for insertion into the min max priority queue for a particular city. This means insertion is O(log n), or logarithmic. 
+
+An update requires O(1 + log n + 1 + log n), or O(log n) time. This is because only the price of an apartment is updated, so only the min heaps in the MinMaxPriorityQueue need to be updated. The 1's are for the O(1) operation to update the hash map. 
+
+A removal is O(1 + 2log n + 1 + 2log n). This is for similar reasons why update is logarithmic. It takes constant time to look up the apartment key in the HashMap, and then log n time to remove the element from each heap. This also has to happen for the city map.
+
+All retrievals are O(1). The lowest price overall will be the first element in the biggest min heap. For a particular city, it is O(1) to lookup the city's min max priority queue and then O(1) to retrieve the first element in its min heap. The same logic applies for retrieving the maximum square footage, except it looks at the first element in the max heap instead.

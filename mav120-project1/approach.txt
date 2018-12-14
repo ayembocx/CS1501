@@ -1,0 +1,15 @@
+My approach to save history was to modify the Trie Symbol Table provided by the  textbook and use that to store words and their frequency.
+
+The Trie made the most sense because it do the lookups on each character and store the history efficiently. Using an Array would require O(logn) lookup time
+and and have slow insertions.
+
+Since it is a Trie, an insert runs in O(w) time, where w is the length of the word.
+When searching for prefix's, the runtime is dependent on how many words are stored in the Trie. For this project,
+I assumed the number of words in user history is not going to be significantly large.
+The drawback of using this Trie is that since it is backed by a character array is that a lot of space is wasted.
+However, I think the size of the user history will usually be small enough that the extra wasted space will be manageable.
+
+I changed the Trie code so it constructs a HashMap when a prefix is given. Then, to retrieve a the most frequent words from this map,
+ I used a Priority Queue. I was deciding whether to use a TreeMap or a Priority Queue. I decided to use the PriorityQueue because
+ I thought the TreeMap had too much overhead. I thought this because internally has to maintain an internal AVL tree. In this case I am only concerned about the top 5,
+ and the runtime of the TreeMap would not be that most better.
