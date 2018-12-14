@@ -1,4 +1,4 @@
-# CS1501
+# CS 1501
 CS1501 is Algorithm Implementation at Pitt. I took it with Dr. Farnan in Fall 2018.
 
 For more in depth project descriptions view specific folders.
